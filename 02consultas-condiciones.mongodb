@@ -1,0 +1,37 @@
+/* Consultas con documento de predicado */
+
+// Condiciones de igualdad.
+// Listar los usuarios cuyo idioma sea "es"
+db.usuarios.find(
+  {"perfil.preferencias.idioma": "es"},
+  {email:1, "perfil.preferencias.idioma": 1}
+);
+
+// En el documento de proyección se admite
+// la notación de documento anidado para
+// campos en documentos incrustados
+db.usuarios.find(
+  {"perfil.preferencias.idioma": "es"},
+  {email:1, perfil: {preferencias: {idioma: "es"}}}
+);
+
+// La misma consulta anterior pero con el operador
+// de igualdad. Operador $eq
+db.usuarios.find( 
+  {"perfil.preferencias.idioma": {$eq: "es"}},
+  {email:1, "perfil.preferencias.idioma": 1}
+);
+
+// Listar los usuarios (email, fecha de nacimiento)
+// que hayan nacido a partir de 1995.
+db.usuarios.find(
+  {fechaNacimiento: {$gt: new Date('1995-01-01')}},
+  {email:1, fechaNacimiento:1}
+);
+
+// Listar los artículos (titulo, clicks) que tengan
+// más de 300 clicks
+db.articulos.find(
+  {clicks: {$gt: 300}},
+  {titulo:1, clicks:1}
+);

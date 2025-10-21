@@ -1,0 +1,80 @@
+// Mostrar solo el nombre y los apellidos
+// de los usuarios
+db.usuarios.find({}, 
+  {nombre:1, apellidos:true}
+);
+
+// Mostrar el título y el número de 
+// clicks de todos los artículos
+db.articulos.find({},
+  {titulo:1, clicks:1}
+)
+
+// Mostrar el nombre, email y el
+// idioma de las preferencias 
+// de todos los usuarios
+db.usuarios.findOne();
+
+// Notación punto
+// Cualificar el nombre de un campo
+// de un documento incrustado
+// con el nombre de la propiedad 
+// que contiene ese documento incrustado.
+db.usuarios.find({}, 
+  {nombre:1, email:1, "perfil.preferencias.idioma":1}
+);
+
+// Lo mismo con forma anidada
+db.usuarios.find({}, {
+  nombre:1, email:1,
+  perfil: {preferencias: {idioma: 1}}
+});
+
+// Mostrar el título y las etiquetas
+// de todos los artículos.
+db.articulos.find({}, {
+  titulo: 1, etiquetas: 1
+});
+
+/* Proyectando datos calculados */
+
+// Mostrar el email y la edad aproximada
+// del usuario
+db.usuarios.find({}, 
+  {email:1, 
+   edad: {$subtract: [2025, {$year:"$fechaNacimiento"}]}}
+  );
+
+// Listar el id y el título en mayúsculas de los artículos
+db.articulos.find({},
+  { tituloMay: {$toUpper: "$titulo"}}
+);
+
+// Listar el título, la fecha, y la fecha dentro de un mes
+// de los artículos
+db.articulos.find({},
+  {titulo:1, fecha:1, 
+    unMes: 
+    {$dateAdd: {startDate: "$fecha", unit: "month", amount: 1}}
+  }
+);
+
+// Listar el título, la fecha y cuantos comentarios tienen
+// los artículos
+
+db.articulos.find( {},
+  {titulo:1, fecha:1, numCom: {$size: "$comentarios"}}
+);
+
+// Listar el título, clicks y un campo "popular" que es
+// booleano indicando si el artículo tiene más de 400 clicks
+db.articulos.find({},
+  {titulo:1, clicks:1, popular: {$gt: ["$clicks", 400]}}
+);
+
+// Listar titulo, fecha y el primer elemento 
+// de los comentarios, de todos los artículos.
+db.articulos.find({},
+  {titulo:1, fecha:1, comen1: {$arrayElemAt: ["$comentarios", 0]} }
+);
+
