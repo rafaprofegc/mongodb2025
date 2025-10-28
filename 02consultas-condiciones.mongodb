@@ -1,6 +1,6 @@
 /* Consultas con documento de predicado */
 
-// Condiciones de igualdad.
+// Condiciones de igualdad sin operador $eq
 // Listar los usuarios cuyo idioma sea "es"
 db.usuarios.find(
   {"perfil.preferencias.idioma": "es"},
@@ -15,6 +15,9 @@ db.usuarios.find(
   {email:1, perfil: {preferencias: {idioma: "es"}}}
 );
 
+// CONDICIONES SIMPLES. OPERADORES DE COMPARACIÓN
+// ----------------------------------------------
+
 // La misma consulta anterior pero con el operador
 // de igualdad. Operador $eq
 db.usuarios.find( 
@@ -23,15 +26,80 @@ db.usuarios.find(
 );
 
 // Listar los usuarios (email, fecha de nacimiento)
-// que hayan nacido a partir de 1995.
+// que hayan nacido a partir de 1995. Operador $gt
 db.usuarios.find(
   {fechaNacimiento: {$gt: new Date('1995-01-01')}},
   {email:1, fechaNacimiento:1}
 );
 
 // Listar los artículos (titulo, clicks) que tengan
-// más de 300 clicks
+// más de 300 clicks. Operador $gt
 db.articulos.find(
   {clicks: {$gt: 300}},
   {titulo:1, clicks:1}
 );
+
+// Listar los usuarios cuyo idioma esté en español
+// o inglés. Operador $in
+db.usuarios.findOne();
+db.usuarios.find({
+  "perfil.preferencias.idioma": { $in: ["es", "en"] }
+});
+
+// Listar los artículos publicados hasta el mes de julio
+// Operador $lt
+db.articulos.find({
+  fecha: {$lt: new Date('2025-07-01')}
+}, {titulo:1, fecha:1});
+
+// Listar los usuarios cuyo tema es distinto de "oscuro".
+// Operador $ne
+db.usuarios.find({
+  "perfil.preferencias.tema" : { $ne : "oscuro"}
+}, {email:1, "perfil.preferencias.tema": 1});
+
+// Listar los usuarios cuyo idioma no es español ni
+// aleman. Operador $nin
+db.usuarios.find({
+  "perfil.preferencias.idioma" : {$nin: ["es", "de"]}
+});
+
+// CONDICIONES CON EXPRESIONES REGULARES
+// -------------------------------------
+// Operador $regex
+
+// Listar los usuarios cuyo dominio de correo
+// es gemail.com
+
+db.usuarios.find({
+  email: { $regex:/@gemail.com$/i}
+}, {email:1});
+
+// Listar los artículos en cuyo título aparece
+// IA. 
+db.articulos.find({
+  titulo: { $regex: /\bia\b/, $options: "i"}
+}, {titulo:1});
+
+// CONDICIONES COMPUESTOS. OPERADORES LÓGICOS
+// ------------------------------------------
+
+// Listar los usuarios cuyo idioma es inglés (en) o
+// español (es)
+// Operador lógico $or
+// Las condiciones se ponen en un array en forma de
+// documento y separadas por coma.
+db.usuarios.find({
+  $or: [{"perfil.preferencias.idioma" : "es"}, 
+        {"perfil.preferencias.idioma" : "en"}
+   ]
+});
+
+// Listar los usuarios cuya fecha de nacimiento es
+// posterior a 1990 o su email pertenece al dominio
+// gemail.com
+db.usuarios.find({
+  fechaNacimiento: {$gt: new Date('1990-12-31')}
+
+  email: { $regex: }
+})
