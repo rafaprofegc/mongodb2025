@@ -81,7 +81,7 @@ db.articulos.find({
   titulo: { $regex: /\bia\b/, $options: "i"}
 }, {titulo:1});
 
-// CONDICIONES COMPUESTOS. OPERADORES LÓGICOS
+// CONDICIONES COMPUESTAS. OPERADORES LÓGICOS
 // ------------------------------------------
 
 // Listar los usuarios cuyo idioma es inglés (en) o
@@ -91,15 +91,153 @@ db.articulos.find({
 // documento y separadas por coma.
 db.usuarios.find({
   $or: [{"perfil.preferencias.idioma" : "es"}, 
-        {"perfil.preferencias.idioma" : "en"}
-   ]
-});
+        {"perfil.preferencias.idioma" : "en"}]
+}, {email:1, perfil:1});
 
 // Listar los usuarios cuya fecha de nacimiento es
 // posterior a 1990 o su email pertenece al dominio
 // gemail.com
 db.usuarios.find({
-  fechaNacimiento: {$gt: new Date('1990-12-31')}
+  $or: [ {fechaNacimiento: {$gt: new Date('1990-12-31')}},
+         {email: { $regex: /@gemail.com$/}}]
+});
 
-  email: { $regex: }
-})
+// Listar los usuarios que tienen idioma en español
+// y el tema es oscuro.
+
+db.usuarios.find({
+  $and: [{"perfil.preferencias.idioma": "es"},
+         {"perfil.preferencias.tema": "oscuro"}]
+});
+
+db.usuarios.find({
+  "perfil.preferencias.idioma": "es", 
+  "perfil.preferencias.tema": "oscuro"
+});
+
+// Listar los usuarios que han accedido por última vez
+// en el mes de octubre
+db.usuarios.find({
+  $and: [ {"perfil.ultimoAcceso": {$gte: new Date('2025-10-01')}},
+          {"perfil.ultimoAcceso": {$lte: new Date('2025-10-31')}}
+  ]
+});
+
+db.usuarios.find({
+  "perfil.ultimoAcceso": {$gte: new Date('2025-10-01')},
+  "perfil.ultimoAcceso": {$lte: new Date('2025-10-31')}
+});
+
+// Listar los artículos publicados después del 1 de septiembre
+// de 2025 y que tenga más de 150 visitas
+db.articulos.find({
+  "fecha": { $gt: new Date('2025-09-01') },
+  clicks: { $gt: 150 }
+});
+
+// Listas las reacciones de tipo like del usuario que no sea
+// rafagon1111@gemail.com
+db.reacciones.findOne();
+
+// Uso de variables JavaScript 
+let usuario = db.usuarios.findOne({email:"rafagon1111@gemail.com"});
+db.reacciones.find({
+  tipo: "like", usuarioID: {$ne: usuario._id}
+});
+
+// Listar los usuarios cuyo idioma no sea español
+db.usuarios.find({
+  "perfil.preferencias.idioma": { $not: { $eq: "es"}}
+});
+
+// Listar los usuarios que no tienen tema oscuro ni
+// el idioma es español
+db.usuarios.find({
+  "perfil.preferencias.tema": { $not: {$eq: "oscuro"} },
+  "perfil.preferencias.idioma": { $not: {$eq: "es"} }
+});
+
+// CONSULTAS SOBRE VALORES DE UN ARRAY
+// -----------------------------------
+// Listar los artículos que tienen la etiqueta "historia"
+// Si pongo una condición de igualdad, muestra los documentos
+// cuyo campo array contiene al menos un elemento con el valor indicado
+db.articulos.find({
+  "etiquetas.etiqueta": "historia"
+}, {titulo:1, etiquetas:1});
+
+// Listar los artículos revisados el 4 de febrero de 2025
+db.articulos.find({
+  revisiones : new Date('2025-02-04')
+});
+
+// Listar los artículos que tienen comentarios con 
+// la palabra magnífico
+db.articulos.find({
+  "comentarios.texto" : {$regex: /magnífico/i}
+});
+
+// Listar los artículos que tienen una revisión anterior 
+// al 4 de enero de 2025
+db.articulos.find({
+  revisiones: {$lt: new Date('2025-01-04')}
+});
+
+// Consultas sobre un elemento concreto del array.
+// Tengo que utilizar la notación punto con:
+//     campo.indice, siendo índice el número del
+// elemento en el array. Los índices comienzan por 0
+
+// Listar los artículos cuya segunda revisión (segundo
+// elemento del array revisiones) sea del 4 de febrero
+// de 2025
+db.articulos.find({
+  "revisiones.1" : new Date('2025-02-04')
+});
+
+// Listar los artículos cuya primera categoría
+// no es opinión
+db.articulos.find({
+  "categorias.0.nombre": {$not: {$eq: "opinión"}}
+});
+
+db.articulos.find({
+  "categorias.0.nombre": {$ne: "opinión"}
+});
+
+// CONSULTAS SOBRE CAMPOS ARRAYS CON VARIAS CONDICIONES
+// ----------------------------------------------------
+
+// Listas los artículos que tienen revisiones en el mes 
+// de mayo
+
+// Si no se indica nada se hace un AND implícito con
+// todos los elementos del array.
+db.articulos.find({
+  revisiones: {$gte: new Date('2025-05-01')}, 
+  revisiones: {$lte: new Date('2025-05-31')}
+});
+
+db.articulos.find({
+  $and: [{revisiones: {$gte: new Date('2025-05-01')}}, 
+         {revisiones: {$lte: new Date('2025-05-31')}}]
+});
+
+// Listar los artículos con algún comentario del usuario
+// rafagon1111@gemail.com y con texto que contenga
+// la palabra "datos".
+
+// Con and implícito
+usuario = db.usuarios.findOne({email:"rafagon1111@gemail.com"});
+db.articulos.find({
+  "comentarios.usuario" : usuario._id,
+  "comentarios.texto": { $regex:/datos/i}
+});
+
+// Con $elemMatch
+usuario = db.usuarios.findOne({email:"rafagon1111@gemail.com"});
+db.articulos.find({
+  "comentarios": { $elemMatch: {usuario: usuario._id, 
+                               texto: {$regex: /datos/i}}
+                 }
+});
