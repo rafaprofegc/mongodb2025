@@ -205,6 +205,18 @@ db.articulos.find({
   "categorias.0.nombre": {$ne: "opinión"}
 });
 
+// Listar los artículos que tienen el primer comentario
+// hecho el 10/5/2025
+db.articulos.find({
+  "comentarios.0.fecha": new Date("2025-05-10")
+});
+
+// Listar los artículos que tienen como segunda etiqueta
+// "historia".
+db.articulos.find({
+  "etiquetas.1.etiqueta": "historia"
+});
+
 // CONSULTAS SOBRE CAMPOS ARRAYS CON VARIAS CONDICIONES
 // ----------------------------------------------------
 
@@ -241,3 +253,71 @@ db.articulos.find({
                                texto: {$regex: /datos/i}}
                  }
 });
+
+// Listar los artículos que tienen al menos una categoría
+// que sea "opinión" y otra que es "cultura"
+db.articulos.find({
+  "categorias.nombre": "opinión",
+  "categorias.nombre": "cultura"
+});
+
+db.articulos.find({
+  $and: [ {"categorias.nombre": "opinión"},
+          {"categorias.nombre": "cultura"}
+  ]
+});
+
+// CONSULTAS SOBRE EL TAMAÑO DEL ARRAY
+// -----------------------------------
+
+// Determinar el tamaño exacto
+// Listar los artículos que tienen 4 comentarios.
+db.articulos.find({
+  comentarios: {$size: 4}
+});
+
+// Saber si el array supera un nº de elementos
+// Listar los artículos con más de 3 comentarios.
+
+/* Esto no es correcto, no sale
+db.articulos.find({
+  comentarios: {$gt: 3}
+});
+*/
+
+db.articulos.find({
+  $expr: {$gt: [{$size: "$comentarios"}, 3]}
+});
+
+// CONSULTAS SOBRE CAMPOS INEXISTENTES O NULL
+
+// Listar los usuarios que no tienen un idioma definido
+// (que tengan el idioma a null)
+db.usuarios.find({ "perfil.preferencias.idioma": null});
+
+// Listar los usuarios que no tienen la red social "twitter"
+// (que no exista el campo twitter)
+db.usuarios.findOne();
+db.usuarios.find({
+  "perfil.redesSociales.twitter" : {$exists: false}
+});
+
+// Listar los usuraios que no tienen facebook en sus 
+// redes sociales
+db.usuarios.find({
+  "perfil.redesSociales.facebook": {$exists: false}
+});
+
+// Listar los artículos que tengan más de 1 revisión
+db.articulos.find({
+  "revisiones.1": {$exists: true}
+});
+
+// Listar los artículos que tienen menos de 3 comentarios
+db.articulos.find({
+  "comentarios.2": {$exists: false}
+}, {titulo:1, numCom: {$size: "$comentarios"}});
+
+
+
+
