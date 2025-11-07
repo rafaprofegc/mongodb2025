@@ -1,0 +1,251 @@
+/*
+Consulta de agregación
+
+Una consulta dividida en varias etapas. En 
+cada etapa se resuelve una tarea de la consulta.
+
+Ej. 1ª Etapa -> Filtrado de documentos
+    2ª Etapa -> Ordenación
+    3ª Límite -> Listar un nº de documentos
+    4ª Join -> Unir los documentos de una colección
+               con los de otra mediante referencias.
+
+El resultado de una etapa es un conjunto de
+documentos, que sirven como entrada a la 
+siguiente etapa.
+
+Todo comienza con db.colección.aggregate();
+
+Este método recibe un array donde cada elemento
+es un documento con la etapa correspondiente.
+
+Sintaxis:
+
+db.coleccion.aggregate([
+  {
+    // Documento con la 1ª etapa
+  },
+  {
+    // Documento con la 2ª etapa
+  },
+  ...
+  {
+    // Documento con la n etapa
+  }
+]);
+
+No hay un orden predefinido para las etapas.
+
+Cada etapa tiene un operador de agregación, el 
+cual define que operación se realiza en dicha 
+etapa. Operadores:
+  - $match -> Filtrado mediante condiciones.
+  - $lookup -> Join externo por la izquierda
+  - $project -> Decidir que campos que se muestran
+  - $addFields -> Añadir nuevos campos a partir
+                  de los existentes.
+  - $sort -> Ordena la colección de documentos.
+  - $limit -> Limita el número de documentos.
+  - $group -> Para hacer consultas agrupadas.
+  - $unwind -> "Desenrollar" un documento en varios
+*/
+
+// Listar los artículos publicados en el mes
+// de octubre ordenados por fecha descendente
+db.articulos.aggregate([
+  {
+    // 1ª Etapa. Filtrado
+    $match: {
+      fecha: { $gte: new Date('2025-10-01'), 
+               $lte: new Date('2025-10-31') }
+    }
+  },
+  {
+    // 2ª Etapa. Ordenación
+    $sort: { fecha: -1 }
+  }
+]);
+
+// Listar los usuarios (nombre, apellidos, redes sociales)
+// que tienen twitter como red social
+// ordenados por apellidos y nombre.
+db.usuarios.aggregate([
+  {
+    // 1ª Etapa. Filtrado
+    $match: {
+      "perfil.redesSociales.twitter" : {$exists: true}
+    }
+  },
+  {
+    // 2ª Etapa. Ordenación
+    $sort: { apellidos: 1, nombre: 1}
+  },
+  {
+    // 3ª Etapa. Proyección de campos
+    $project: {nombre:1, apellidos:1, "perfil.redesSociales.twitter": 1}
+  }
+]);
+
+// Operador $lookup
+// Listar los artículos y los usuarios que lo han escrito
+db.articulos.aggregate([
+  {
+    // 1ª Etapa. Join externo por la izquierda
+    $lookup: {
+      from: "usuarios",
+      localField: "usuario",
+      foreignField: "_id",
+      as: "autor"
+    }
+  }
+]);
+
+// Listar los artículos y las reacciones que han tenido
+db.reacciones.findOne();
+db.articulos.aggregate([
+  {
+    $lookup: {
+      from: "reacciones",
+      localField: "_id",
+      foreignField: "articuloID",
+      as: "reacciones"
+    }
+  }
+]);
+
+// Listar los usuarios y las reacciones que han hecho
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "reacciones",
+      localField: "_id",
+      foreignField: "usuarioID",
+      as: "reacciones"
+    }
+  }
+]);
+
+// Operador $project y $addFields
+// Listar los artículos (titulo, fecha) y los usuarios
+// (_id, email) que lo han escrito
+db.articulos.aggregate([
+  {
+    $lookup: {
+      from: "usuarios",
+      localField: "usuario",
+      foreignField: "_id",
+      as: "autor"
+    }
+  },
+  {
+    $project: { titulo: 1, fecha: 1, "autor.email": 1}
+  }
+]);
+
+// Listar los usuarios (email, nombre, apellidos) y las
+// reacciones (articuloID, tipo) que han hecho a los
+// artículos.
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "reacciones",
+      localField: "_id",
+      foreignField: "usuarioID",
+      as: "reacciones"
+    }
+  },
+  {
+    $project:{ email: 1, nombre: 1, apellidos: 1,
+      "reacciones.articuloID": 1, "reacciones.tipo": 1
+    }
+  }
+]);
+
+// Listar los usuarios( email, nombre completo y la edad
+// aproximada) y los artículos que han publicado (título y
+// la fecha)
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "articulos",
+      localField: "_id",
+      foreignField: "usuario",
+      as: "articulos"
+    }
+  },
+  {
+    $project: {
+      email: 1, 
+      nombreCompleto: {$concat: ["$nombre", " ", "$apellidos"]},
+      ayoNacimiento: { $year: "$fechaNacimiento"},
+      edad: { $subtract: [2025, {$year: "$fechaNacimiento"}]},
+      "articulos.titulo": 1, "articulos.fecha": 1
+    }
+  }
+]);
+
+// En $project, no podemos usar un dato calculado para
+// calcular otro. Ej.
+/*
+$project: {
+      email: 1, 
+      nombreCompleto: {$concat: ["$nombre", " ", "$apellidos"]},
+      ayoNacimiento: { $year: "$fechaNacimiento"},
+      edad: { $subtract: [2025, "$ayoNacimiento"}]},
+      "articulos.titulo": 1, "articulos.fecha": 1
+    }
+*/
+
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "articulos",
+      localField: "_id",
+      foreignField: "usuario",
+      as: "articulos"
+    }
+  },
+  {
+    $addFields: {
+      ayoNacimiento: { $year: "$fechaNacimiento"},
+      nombreCompleto: { $concat: ["$nombre", " " , "$apellidos"]}
+    }
+  },
+  {
+    $project: {
+      email: 1, nombreCompleto: 1, ayoNacimiento: 1,
+      edad: { $subtract: [2025, "$ayoNacimiento"]},
+      "articulos.titulo": 1, "articulos.fecha": 1
+    }
+  }
+]);
+
+// Operador $match
+// Listar los usuarios que han publicado artículos desde
+// el 25 de octubre.
+db.articulos.aggregate([
+  {
+    $lookup: {
+      from: "usuarios",
+      localField: "usuario",
+      foreignField: "_id",
+      as: "autor"
+    }
+  },
+  {
+    $match: {
+      fecha: {$gt: new Date('2025-10-25')}
+    }
+  },
+  {
+    $project: { titulo: 1, fecha: 1, "autor.email": 1}
+  }
+]);
+
+// Repetir el ejercicio anterior pero basando la consulta en
+// la colección usuarios, comprobando que el usuario ha
+// publicado artículos (el array artículos tiene elementos)
+
+
+// Listar los artículos que tengan la etiqueta "tecnología"
+// incluyendo los datos del autor (email, nombre, apellidos)
