@@ -245,7 +245,146 @@ db.articulos.aggregate([
 // Repetir el ejercicio anterior pero basando la consulta en
 // la colección usuarios, comprobando que el usuario ha
 // publicado artículos (el array artículos tiene elementos)
-
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "articulos",
+      localField: "_id",
+      foreignField: "usuario",
+      as: "articulos"
+    }
+  },
+  {
+    $match: {
+      "articulos.0": { $exists: true}, 
+      "articulos.fecha": { $gt: new Date('2025-10-25')} 
+    }
+  }
+]);
 
 // Listar los artículos que tengan la etiqueta "tecnología"
 // incluyendo los datos del autor (email, nombre, apellidos)
+db.articulos.aggregate([
+  {
+    $match: {
+      "etiquetas.etiqueta": "tecnología"
+    }
+  },
+  {
+    $lookup: {
+      from: "usuarios",
+      localField: "usuario",
+      foreignField: "_id",
+      as: "autor"
+    }
+  },
+  {
+    $project: {
+      "autor.email":1, "autor.nombre":1, 
+      "autor.apellidos":1, titulo:1, etiquetas:1
+    }
+  }
+]);
+
+// Operador $sort
+// Listar los artículos (título, fecha, número de comentarios)
+// que tienen 3 comentarios ordenados por fecha descendente.
+db.articulos.aggregate([
+  {
+    $addFields: { numCom: { $size: "$comentarios"}}    
+  },
+  {
+    $match: { numCom: 3 }
+  },
+  {
+    $project: { titulo: 1, fecha: 1, numCom: 1}
+  },
+  {
+    $sort: { fecha: -1 }
+  }
+]);
+
+db.articulos.aggregate([
+  {
+    $project: { 
+      titulo:1, fecha: 1, numCom: { $size: "$comentarios"}
+    }    
+  },
+  {
+    $match: { numCom: 3 }
+  },
+  {
+    $sort: { fecha: -1 }
+  }
+]);
+
+// Listar los artículos (título y fecha) que pertenecen
+// a la categoría "noticias" ordenados por número de clicks
+// ascendente.
+db.articulos.aggregate([
+  {
+    $match: { "categorias.nombre": "noticias"}
+  },
+  {
+    $sort: { clicks: 1}
+  },
+  {
+    $project: { titulo:1, fecha:1, clicks: 1}
+  }
+]);
+
+// Operador $limit
+// Listar el título, nº de clicks y usuario de los 5
+// artículos más visitados.
+db.articulos.aggregate([
+  {
+    $project: { titulo: 1, clicks: 1, usuario: 1}
+  },
+  {
+    $sort: { clicks: -1 }
+  },
+  {
+    $limit: 5
+  }
+]);
+
+// Listar el título y el número de comentarios de
+// los 5 artículos con más comentarios.
+db.articulos.aggregate([
+  {
+    $addFields: { numCom: { $size: "$comentarios"} }
+  },
+  {
+    $project: { titulo:1, numCom: 1 }
+  },
+  {
+    $sort: { numCom: -1 }
+  },
+  {
+    $limit: 5
+  }
+]);
+
+// Listar los 7 artículos (título y número de revisiones)
+// con más revisiones.
+db.articulos.aggregate([
+  {
+    $addFields: { numRev: { $size: "$revisiones"}}
+  },
+  {
+    $project: { titulo:1, numRev: 1}
+  },
+  {
+    $sort: { numRev: -1 }
+  },
+  {
+    $limit: 7
+  }
+]);
+
+// Listar los 5 artículos (título y fecha) más recientes
+// del usuario con email rafagon1111@gemail.com
+
+// 
+
+
