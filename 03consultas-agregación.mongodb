@@ -384,7 +384,144 @@ db.articulos.aggregate([
 
 // Listar los 5 artículos (título y fecha) más recientes
 // del usuario con email rafagon1111@gemail.com
+db.articulos.aggregate([
+  {
+    $lookup: {
+      from: "usuarios",
+      localField: "usuario",
+      foreignField: "_id",
+      as: "autor"
+    }
+  },
+  {
+    $match: {
+      "autor.email": "rafagon1111@gemail.com"
+    }
+  },
+  {
+    $project: { titulo: 1, fecha: 1, "autor.email":1 }
+  },
+  {
+    $sort: { fecha: -1 }
+  },
+  {
+    $limit: 5
+  }  
+]); 
 
-// 
+// CONSULTAS AGRUPADAS
+// OPERADORES $group y $unwind
 
+// Listar cuántos artículos hay anteriores al
+// 20 de mayo
+db.articulos.aggregate([
+  {
+    $match: {
+      fecha: { $lt: new Date('2025-05-20')}
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      totalArticulos: { $count: {} }
+    }
+  }
+]);
 
+// Lo mismo pero con $sum
+db.articulos.aggregate([
+  {
+    $match: {
+      fecha: { $lt: new Date('2025-05-20')}
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      totalArticulos: { $sum: 1 }
+    }
+  }
+]);
+
+// Listar el id de usuario y cuantos artículos
+// ha publicado.
+db.articulos.aggregate([
+  {
+    $group: {
+      _id: "$usuario",
+      totalArticulos: { $count: {} }
+    }
+  }
+]);
+
+// Listar el id de usuario y la suma de los clicks
+// de sus artículos
+db.articulos.aggregate([
+  {
+    $group: {
+      _id: "$usuario",
+      totalClicks: { $sum: "$clicks"}
+    }
+  }
+]);
+
+// Listar el email del usuario y cuantos
+// artículos tiene.
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "articulos",
+      localField: "_id",
+      foreignField: "usuario",
+      as: "artEscritos"
+    }
+  },
+  {
+    $project: { _id:0, email:1, 
+      "artEscritos.titulo": 1}
+  }, {
+    $unwind: "$artEscritos"
+  }, {
+    $group: {
+      _id: "$email",
+      totalArticulos: { $count: {} }
+    }
+  }
+]);
+
+// Esta consulta se puede hacer sin $group
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "articulos",
+      localField: "_id",
+      foreignField: "usuario",
+      as: "artEscritos"
+    }
+  }, {
+    $project: {
+      email: 1, 
+      totalArticulos: {$size: "$artEscritos"}
+    }
+  }
+]);
+
+// Listar el id de artículo y cuántas reacciones
+// han tenido de tipo like ordenadas
+// descendentemente
+db.reacciones.aggregate([
+  {
+    $match: {
+      tipo: "like"
+    }
+  },
+  {
+    $group: {
+      _id: "$articuloID",
+      totalReacciones: { $count: {} }
+    }
+  },
+  {
+    $sort: { totalReacciones: -1 }
+  }
+]);
