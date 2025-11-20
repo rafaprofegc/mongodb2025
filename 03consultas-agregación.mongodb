@@ -525,3 +525,99 @@ db.reacciones.aggregate([
     $sort: { totalReacciones: -1 }
   }
 ]);
+
+// Listar los 10 artículos (id articulo, nº likes)
+// con más likes
+db.reacciones.aggregate([
+  {
+    $match: { tipo: "like"}
+  },
+  {
+    $group: {
+      _id: "$articuloID",
+      totalLikes: { $count: {} }
+    }
+  },
+  {
+    $sort: { totalLikes: -1 }
+  },
+  {
+    $limit: 10
+  }
+]);
+
+// Listar el id de usuario, número total
+// de comentarios de sus artículos (suma 
+// de las longitudes del array comentarios
+// en artículos).
+db.articulos.aggregate([
+  {
+    $addFields: { numCom: { $size: "$comentarios"}}
+  },
+  {
+    $group: {
+      _id: "$usuario",
+      nComUsuario: { $sum: "$numCom"}
+    }
+  },
+  {
+    $lookup: {
+      from: "usuarios",
+      localField: "_id",
+      foreignField: "_id",
+      as: "autor"
+    }
+  },
+  {
+    $unwind: "$autor"
+  },
+  {
+    $project: { 
+      "autor.nombre": 1, 
+      "autor.apellidos": 1,
+      nComUsuario: 1
+    }
+  }
+]);
+
+// Listar el email de usuario la media de 
+// clicks que ha tenido en sus artículos.
+db.articulos.aggregate([
+  {
+    $lookup: {
+      from: "usuarios",
+      localField: "usuario",
+      foreignField: "_id",
+      as: "autor"
+    }
+  },
+  {
+    $group: {
+      _id: "$autor.email",
+      mediaClicks: { $avg: "$clicks"},
+      totalArticulos: { $count: {}}
+    }
+  }
+]);
+
+db.usuarios.aggregate([
+  {
+    $lookup: {
+      from: "articulos",
+      localField: "_id",
+      foreignField: "usuario",
+      as: "obras"
+    }
+  },
+  {
+    $unwind: "$obras"
+  },
+  {
+    $group: {
+      _id: "$email",
+      mediaClicks: { $avg: "$obras.clicks"}
+    }
+  }
+]);
+
+db.usuarios.findOne();
