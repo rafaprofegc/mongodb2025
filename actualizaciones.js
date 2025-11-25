@@ -68,3 +68,89 @@ let nuevoArticulo = {
 }
 
 let resInsertArticulo = db.articulos.insertOne(nuevoArticulo);
+
+// Inserción de varios documentos insertMany()
+/* 
+  Insertar reacciones del nuevo usuario y que sean de tipo like
+  a los artículos publicados antes del 10/5/2025 
+*/
+
+let conjuntoArticulos = db.articulos.find(
+  { fecha: {$lt: new Date('2025-05-10')} }
+);
+
+let arrayArticulos = conjuntoArticulos.toArray();
+let usuario = db.usuarios.findOne({email: "juana1111@jotmail.com"});
+
+db.reacciones.insertMany([
+  { usuarioID: usuario._id, articuloID: arrayArticulos[0]._id, tipo: "like"},
+  { usuarioID: usuario._id, articuloID: arrayArticulos[1]._id, tipo: "like"},
+  { usuarioID: usuario._id, articuloID: arrayArticulos[2]._id, tipo: "like"},
+  { usuarioID: usuario._id, articuloID: arrayArticulos[3]._id, tipo: "like"},
+  { usuarioID: usuario._id, articuloID: arrayArticulos[4]._id, tipo: "like"}
+]);
+
+/*
+arrayArticulos.forEach(art => {
+  db.reacciones.insertOne({usuarioID: usuario._id, articuloID: art._id, tipo: "like"} );
+});
+*/
+
+
+/* ACTUALIZACIONES DE DOCUMENTOS
+   -----------------------------
+
+   Métodos: updateOne(), updateMany()
+
+   Sintaxis:
+    updateOne({filtro}, {actualizacion});
+
+    updateMany({filtro}, {actualizacion});
+
+   Operadores de actualizaciones
+   - $currentDate -> Pone un campo con el valor de la fecha actual.
+   - $inc -> Incrementa o decrementa un campo con un valor dado
+   - $min -> Actualiza el valor del campo con el mínimo entre el valor actual y otro
+   - $max -> Actualiza el valor del campo con el máximo entre el valor actual y otro.
+   - $mul -> Múltiplica el valor actual del campo por un valor indicado.
+   - $rename -> Cambia el nombre de un campo
+   - $set -> Establece un nuevo valor al campo.
+   - $unset -> Elimina el campo especificado.
+*/
+
+// Actualizar la fecha de ultimo acceso del usuario con
+// email juana1111@jotmail.com al día de hoy.
+db.usuarios.updateOne(
+  { email: "juana1111@jotmail.com"},
+  { $currentDate: { "perfil.ultimoAcceso": true}}
+);
+
+// Actualizar los clicks de los artículos del usuario
+// rafagon1111@gemail.com e incrementarlos en 1.
+usuario = db.usuarios.findOne({email: "rafagon1111@gemail.com"});
+db.articulos.updateMany(
+  { usuario: usuario._id},
+  { $inc: {clicks: 1}}
+);
+
+// Actualizar el tema del usuario javierhern2222@gemail.com
+// a oscuro
+db.usuarios.updateOne(
+  { email: "javierhern2222@gemail.com"},
+  { $set: {"perfil.preferencias.tema": "oscuro"}}
+);
+
+// Actualizar la fecha de registro del usuario
+// mariaiba3333@jotmail.com al día de hoy
+db.usuarios.updateOne(
+  { email: "mariaiba3333@jotmail.com" },
+  { $currentDate: {"perfil.fechaRegistro": true}} 
+);
+
+// Actualizar la fecha de publicación del artículo
+// con título "Origen y evolución del PLC" al
+// 10/5/2025 si es más reciene que la que tiene ahora
+db.articulos.updateOne(
+  { titulo: "Origen y evolución de PLC"},
+  { $min: {fecha: new Date('2025-05-10')} }
+);
