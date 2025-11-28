@@ -63,7 +63,7 @@ let nuevoArticulo = {
     { etiqueta: "actualidad", url: "/etiquetas/actualidad" }
   ],
   categorias: [ { nombre: "noticias", url: "/categorias/noticias"}],
-  comenarios: [],
+  comentarios: [],
   revisiones: []
 }
 
@@ -153,4 +153,176 @@ db.usuarios.updateOne(
 db.articulos.updateOne(
   { titulo: "Origen y evolución de PLC"},
   { $min: {fecha: new Date('2025-05-10')} }
+);
+
+// Actualizar los clicks del artículo con título
+// "La IA se empleará para gobernar" y multiplicarlos por 2
+db.articulos.updateOne(
+  { titulo: "La IA se empleará para gobernar"},
+  { $mul : {clicks: 2} }
+);
+
+// Actualizar los artículos del usuario rafagon1111@gemail.com
+// y poner los clicks en 50 si es mayor que los que tiene ahora
+usuario = db.usuarios.findOne({email:"rafagon1111@gemail.com"}, {_id:1});
+
+db.articulos.updateMany(
+  { usuario: usuario._id },
+  { $max: {clicks: 50} }
+);
+
+// Actualizar los usuarios que han abierto sesión antes
+// del 25 de septiembre y ponerle el rol "lector"
+db.usuarios.updateMany(
+  { "perfil.ultimoAcceso": { $lt: new Date('2025-09-25') } },
+  { $set: { "perfil.rol" : "lector"}}
+);
+
+// Actualizar la fecha de último acceso a la fecha actual
+// a todos los usuarios con el rol lector.
+db.usuarios.updateMany( 
+  { "perfil.rol": "lector"},
+  { $currentDate: {"perfil.ultimoAcceso": true}}
+);
+
+db.usuarios.updateMany(
+  { "perfil.rol": "lector"},
+  { $set: { "perfil.ultimoAcceso": new Date('2025-11-28')}}
+);
+
+// Reducir un 10% los clicks de los artículos
+// publicados antes del 25/9
+db.articulos.updateMany( 
+  { fecha: { $lt: new Date('2025-09-25')}},
+  { $mul: {clicks: 0.9} }
+);
+
+// Establecer la fecha de último acceso al 1/10
+// para los usuarios que tienen el último
+// acceso anterior al 15/9
+db.usuarios.updateMany( 
+  { "perfil.ultimoAcceso": { $lt: new Date('2025-09-15')}},
+  { $set: {"perfil.ultimoAcceso": new Date('2025-10-01')}}
+);
+
+// Asignar al usuario rafagon1111@gemail.com
+// los artículos cuyo título contiene UE.
+usuario = db.usuarios.findOne({ email: "rafagon1111@gemail.com"}, { _id: 1});
+
+db.articulos.updateMany( 
+  { titulo: { $regex: /\bUE\b/} },
+  { $set: {usuario: usuario._id}}
+);
+
+// Cambiar el nombre del campo comenarios en el 
+// artículo insertado al principio por comentarios
+db.articulos.updateOne(
+  {titulo: {$regex:/phising/}},
+  {$rename: {comenarios: "comentarios"}}
+);
+
+// OPERADORES DE ACTUALIZACIÓN PARA ARRAYS
+// ---------------------------------------
+
+// Actualizar el artículo insertado al principio
+// para añadir una revisión el día de hoy
+articulo = db.articulos.findOne({titulo: {$regex:/phising/}});
+db.articulos.updateOne(
+  { titulo: {$regex:/phising/}},
+  { $push: {revisiones: new Date('2025-11-28')} }
+);
+
+
+// Actualizar el artículo insertado al principio
+// para añadir un comentario del usuario rafagon1111@gemail.com
+// el día de hoy, y con el texto "No me gusta nada"
+usuario = db.usuarios.findOne({email:"rafagon1111@gemail.com"});
+db.articulos.updateOne(
+  { titulo: {$regex:/phising/}},
+  { $push: {
+    comentarios: { texto: "No me gusta nada", 
+                   fecha: new Date('2025-11-28'), 
+                   usuario: usuario._id }
+            }
+  }
+);
+
+// Eliminar del artículo "Por qué duró tanto la II Guerra Mundial"
+// la revisión del día 4/2
+db.articulos.updateOne(
+  { titulo: { $regex: /II Guerra Mundial/} },
+  { $pull: { revisiones: new Date('2025-02-04')} }
+);
+
+// Eliminar la etiqueta actualidad del artículo insertado
+db.articulos.updateOne(
+  { titulo: {$regex:/phising/}},
+  { $pull : { etiquetas: {etiqueta: "actualidad"} } }
+);
+
+
+// REEMPLAZO DE DOCUMENTOS
+/* Actualizar un documento con otro:
+  - Ambos documentos tienen que tener el mismo _id
+  - No se pueden incluir operadores de actualización.
+  - El documento que sustituye puede omitir el campo _id 
+    ya que no se puede cambiar.
+  - El documento que sustituye puede tener diferente
+    estructura que el documento sustituido.
+
+    Sintaxis:
+
+    db.colección.replaceOne(<filtro>, <documento>);
+
+
+Actualizar los siguientes campos del usuario juana1111@jotmail.com
+- Apellidos: González Martínez
+- Fecha nacimiento: 30/11/1999
+- Fecha de registro: 23/10/2025
+- Rol: lector
+- Preferencias: tema claro e idioma en
+*/
+usuario = db.usuarios.findOne({email:"juana1111@jotmail.com"});
+usuario.apellidos = "González Martínez";
+usuario.fechaNacimiento = new Date('1999-11-30');
+usuario.perfil.fechaRegistro = new Date('2025-10-23');
+usuario.perfil.rol = "lector";
+usuario.perfil.preferencias = { tema: "claro", idioma: "en"};
+
+db.usuarios.replaceOne(
+  { email: "juana1111@jotmail.com" }, usuario 
+);
+
+// ELIMINACION DE DOCUMENTOS
+// -------------------------
+
+// Eliminar los artículos del usuario juana1111@jotmail.com
+usuario = db.usuarios.findOne({email:"juana1111@jotmail.com"});
+db.articulos.deleteMany( 
+  { usuario: usuario._id }
+);
+
+// Eliminar el usuario con el email: juana1111@jotmail.com
+db.usuarios.deleteOne(
+  { email: "juana1111@jotmail.com"}
+);
+
+usuario = db.usuarios.findOne({email:"juana1111@jotmail.com"});
+db.usuarios.deleteOne({ _id: usuario._id});
+
+// ELIMINAR DOCUMENTOS INCRUSTADOS
+// -------------------------------
+// Debemos usar updateOne() o updateMany() y asignar
+// null al campo con el documento incrustado o
+// utilizar el operador $unset para eliminar el campo
+
+// Eliminar las preferencias de usuario con email agvalsi@gemail.com
+db.usuarios.updateOne(
+  { email: "agvalsi@gemail.com" },
+  { $set: { "perfil.preferencias": null}}
+);
+
+db.usuarios.updateOne(
+  { email: "agvalsi@gemail.com" },
+  { $unset: { "perfil.preferencias": ""}}
 );
